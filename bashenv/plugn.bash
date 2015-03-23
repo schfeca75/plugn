@@ -1,4 +1,8 @@
 
+version() {
+	echo 0.1.0-wrap
+}
+
 install() {
 	declare desc="Install a new plugin from a Git URL"
 	declare url="$1" name="$2"
@@ -33,7 +37,11 @@ trigger() {
 	shopt -s nullglob
 	for plugin in $PLUGIN_PATH/enabled/*; do
 		eval "$(config-export $(basename $plugin))"
-  		[[ -x "$plugin/$hook" ]] && $plugin/$hook "$@"
+		if [[ -x $WRAPPER_SCRIPT && -x "$plugin/$hook" ]]; then
+			SCRIPT_FILE="$plugin/$hook" $WRAPPER_SCRIPT "$@"
+		elif [[ -x "$plugin/$hook" ]]; then
+			$plugin/$hook "$@"
+		fi
 	done
 	shopt -u nullglob
 	trigger-gateway $hook "$@"
@@ -94,6 +102,7 @@ _source() {
 main() {
 	set -eo pipefail; [[ "$TRACE" ]] && set -x
 
+	cmd-export version
 	cmd-export install
 	cmd-export uninstall
 	cmd-export list
@@ -106,6 +115,6 @@ main() {
 	cmd-export config-export
 	cmd-export config-set
 	cmd-export init
-	
+
 	cmd-ns "" "$@"
 }
